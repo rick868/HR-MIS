@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/stores/authStore";
 import {
   LayoutDashboard,
   Users,
@@ -11,6 +12,7 @@ import {
   Menu,
   X,
   Brain,
+  LogOut,
 } from "lucide-react";
 
 const navigation = [
@@ -24,6 +26,13 @@ const navigation = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/signin');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,8 +96,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             })}
           </nav>
 
-          {/* Settings */}
-          <div className="border-t border-sidebar-border p-3">
+          {/* Settings & Logout */}
+          <div className="border-t border-sidebar-border p-3 space-y-1">
             <Link
               to="/settings"
               className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent/50"
@@ -96,6 +105,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Settings className="h-5 w-5" />
               Settings
             </Link>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 px-3 py-2.5 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-5 w-5" />
+              Sign Out
+            </Button>
           </div>
         </div>
       </aside>
@@ -115,8 +132,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex-1" />
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-muted-foreground">admin@company.com</p>
+              <p className="text-sm font-medium">{user?.name || 'User'}</p>
+              <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
             </div>
             <div className="h-9 w-9 rounded-full bg-gradient-primary" />
           </div>
