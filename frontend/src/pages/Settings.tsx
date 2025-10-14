@@ -7,8 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/stores/authStore";
-import { useTheme } from "next-themes";
 import {
   User,
   Bell,
@@ -24,7 +24,7 @@ import {
 
 export default function Settings() {
   const { user } = useAuthStore();
-  const { theme, setTheme } = useTheme();
+  const [theme, setTheme] = useState('light');
 
   // Profile settings
   const [profileData, setProfileData] = useState({
@@ -32,6 +32,8 @@ export default function Settings() {
     email: user?.email || '',
     phone: '',
     department: '',
+    bio: '',
+    location: '',
   });
 
   // Notification settings
@@ -55,7 +57,9 @@ export default function Settings() {
     language: 'en',
     timezone: 'UTC',
     dateFormat: 'MM/DD/YYYY',
-    currency: 'USD',
+    currency: 'KSH',
+    numberFormat: '10,000.00',
+    weekStartsOn: 'monday',
   });
 
   // Data settings
@@ -155,6 +159,24 @@ export default function Settings() {
                   id="department"
                   value={profileData.department}
                   onChange={(e) => setProfileData({ ...profileData, department: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={profileData.location}
+                  onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="bio">Bio</Label>
+                <Textarea
+                  id="bio"
+                  placeholder="Tell us about yourself..."
+                  value={profileData.bio}
+                  onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                  rows={3}
                 />
               </div>
             </div>
@@ -408,6 +430,60 @@ export default function Settings() {
                     <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
                     <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
                     <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currency">Currency</Label>
+                <Select
+                  value={preferences.currency}
+                  onValueChange={(value) =>
+                    setPreferences({ ...preferences, currency: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="KSH">KSH (KSh)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                    <SelectItem value="GBP">GBP (£)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="number-format">Number Format</Label>
+                <Select
+                  value={preferences.numberFormat}
+                  onValueChange={(value) =>
+                    setPreferences({ ...preferences, numberFormat: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1,000.00">1,000.00</SelectItem>
+                    <SelectItem value="1 000,00">1 000,00</SelectItem>
+                    <SelectItem value="1000.00">1000.00</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="week-starts">Week Starts On</Label>
+                <Select
+                  value={preferences.weekStartsOn}
+                  onValueChange={(value) =>
+                    setPreferences({ ...preferences, weekStartsOn: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monday">Monday</SelectItem>
+                    <SelectItem value="sunday">Sunday</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
