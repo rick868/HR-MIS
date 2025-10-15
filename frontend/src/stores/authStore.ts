@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { apiFetch, API_BASE_URL } from '@/lib/api';
 
 interface User {
   id: string;
@@ -20,7 +21,7 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+// Use shared API base URL from api client
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -34,7 +35,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
 
         try {
-          const response = await fetch(`${API_BASE_URL}/auth/token/`, {
+          const response = await apiFetch(`/auth/token/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
@@ -50,8 +51,8 @@ export const useAuthStore = create<AuthState>()(
           const refreshToken = data.refresh as string;
 
           // get current user
-          const meResp = await fetch(`${API_BASE_URL}/users/me/`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
+          const meResp = await apiFetch(`/users/me/`, {
+            auth: { accessToken, refreshToken, onRefresh: (newAccess) => set({ accessToken: newAccess }) },
           });
           if (!meResp.ok) {
             set({ isLoading: false });
@@ -68,6 +69,14 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        const { refreshToken } = get();
+        // Best-effort blacklist on server; ignore failures
+        if (refreshToken) {
+          apiFetch(`/users/logout/`, {
+            method: 'POST',
+            body: JSON.stringify({ refresh_token: refreshToken }),
+          }).catch(() => void 0);
+        }
         set({ user: null, accessToken: null, refreshToken: null });
       },
 
