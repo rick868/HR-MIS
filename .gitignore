@@ -1,0 +1,50 @@
+# Python
+*.pyc
+__pycache__/
+.env
+venv/
+.Python
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+.eggs/
+*.egg-info/
+.installed.cfg
+lib/
+lib64/
+parts/
+scripts/
+pyvenv.cfg
+
+# Django
+*.log
+*.pot
+*.py[cod]
+*.so
+local_settings.py
+db.sqlite3
+media
+staticfiles
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/bun.lockb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+
+# Logs
+logs/

@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -11,17 +12,17 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
 
     def validate(self, attrs):
-        # If the project uses email as the USERNAME_FIELD but client sent 'username'
-        # map it to the expected field name so parent validation works.
-        username_field = settings.AUTH_USER_MODEL.split('.')[-1].lower()
-        # settings.AUTH_USER_MODEL is like 'users.User' — but we want settings.USERNAME_FIELD
-        username_field = getattr(settings, 'USERNAME_FIELD', 'username')
+        # Ensure we accept whatever the actual user model declares as USERNAME_FIELD
+        user_model = get_user_model()
+        username_field = getattr(user_model, 'USERNAME_FIELD', 'username')
 
-        # If client supplied 'username' but our USERNAME_FIELD is different, map it
-        if 'username' in attrs and username_field != 'username':
-            # don't override if the correct field is already present
-            if username_field not in attrs:
-                attrs[username_field] = attrs.pop('username')
+        # Map common client fields to the expected USERNAME_FIELD
+        # Accept 'email' when USERNAME_FIELD is 'email', and accept 'username' when different
+        if username_field not in attrs:
+            if username_field == 'email' and 'email' in attrs:
+                attrs[username_field] = attrs.get('email')
+            elif 'username' in attrs:
+                attrs[username_field] = attrs.get('username')
 
         return super().validate(attrs)
 

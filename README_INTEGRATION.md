@@ -1,7 +1,7 @@
 Integration notes: Frontend + Backend
 
-Development
------------
+## Development
+
 1. Start Django backend (from project root):
 
 ```bash
@@ -20,8 +20,8 @@ npm run dev
 
 Vite config proxies `/api` to `http://127.0.0.1:8000`, so API calls from the frontend can use `/api/...` paths directly.
 
-Production
-----------
+## Production
+
 1. Build frontend:
 
 ```bash
@@ -40,7 +40,7 @@ python manage.py runserver 0.0.0.0:8000
 
 Django is configured to serve the built frontend from `frontend/dist` via WhiteNoise and a small view that serves `index.html` for the root route.
 
-Notes
------
+## Notes
+
 - Move secrets out of `settings.py` and into environment variables.
 - Add `requirements.txt` for reproducible backend environment.
