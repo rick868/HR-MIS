@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "@/stores/authStore";
+import { apiFetch } from "@/lib/api";
+import { useAuthHeaders } from "@/hooks/useAuthHeaders";
 import {
   User,
   Bell,
@@ -24,6 +26,7 @@ import {
 
 export default function Settings() {
   const { user } = useAuthStore();
+  const { auth } = useAuthHeaders();
   const [theme, setTheme] = useState('light');
 
   // Profile settings
@@ -69,29 +72,94 @@ export default function Settings() {
     exportFormat: 'csv',
   });
 
-  const handleProfileUpdate = () => {
-    // TODO: Implement profile update API call
-    console.log('Updating profile:', profileData);
+  useEffect(() => {
+    // Initialize from backend user
+    if (user) {
+      setProfileData((prev) => ({
+        ...prev,
+        name: `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || user.username || user.email,
+        email: user.email || '',
+      }));
+    }
+  }, [user]);
+
+  const handleProfileUpdate = async () => {
+    const payload = {
+      first_name: profileData.name.split(' ')[0] || '',
+      last_name: profileData.name.split(' ').slice(1).join(' ') || '',
+      phone: profileData.phone,
+      department: profileData.department,
+      bio: profileData.bio,
+      location: profileData.location,
+    };
+    const resp = await apiFetch('/users/profile/update/', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+      auth,
+    });
+    if (!resp.ok) return;
   };
 
-  const handleNotificationUpdate = () => {
-    // TODO: Implement notification settings API call
-    console.log('Updating notifications:', notifications);
+  const handleNotificationUpdate = async () => {
+    const payload = {
+      email_alerts: notifications.emailAlerts,
+      push_notifications: notifications.pushNotifications,
+      weekly_reports: notifications.weeklyReports,
+      performance_alerts: notifications.performanceAlerts,
+      attendance_alerts: notifications.attendanceAlerts,
+    };
+    const resp = await apiFetch('/users/settings/', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+      auth,
+    });
+    if (!resp.ok) return;
   };
 
-  const handleSecurityUpdate = () => {
-    // TODO: Implement security settings API call
-    console.log('Updating security:', security);
+  const handleSecurityUpdate = async () => {
+    const payload = {
+      two_factor_auth: security.twoFactorAuth,
+      session_timeout: security.sessionTimeout,
+      password_expiry: security.passwordExpiry,
+    };
+    const resp = await apiFetch('/users/settings/', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+      auth,
+    });
+    if (!resp.ok) return;
   };
 
-  const handlePreferencesUpdate = () => {
-    // TODO: Implement preferences API call
-    console.log('Updating preferences:', preferences);
+  const handlePreferencesUpdate = async () => {
+    const payload = {
+      language: preferences.language,
+      timezone: preferences.timezone,
+      date_format: preferences.dateFormat,
+      currency: preferences.currency,
+      number_format: preferences.numberFormat,
+      week_starts_on: preferences.weekStartsOn,
+      theme,
+    };
+    const resp = await apiFetch('/users/settings/', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+      auth,
+    });
+    if (!resp.ok) return;
   };
 
-  const handleDataSettingsUpdate = () => {
-    // TODO: Implement data settings API call
-    console.log('Updating data settings:', dataSettings);
+  const handleDataSettingsUpdate = async () => {
+    const payload = {
+      data_retention: dataSettings.dataRetention,
+      auto_backup: dataSettings.autoBackup,
+      export_format: dataSettings.exportFormat,
+    };
+    const resp = await apiFetch('/users/settings/', {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+      auth,
+    });
+    if (!resp.ok) return;
   };
 
   const handleExportData = () => {
