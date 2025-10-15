@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Search, UserPlus, Filter, Mail, Phone } from "lucide-react";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useAuthHeaders } from "@/hooks/useAuthHeaders";
 
-const employees = [
+const staticEmployees = [
   {
     id: 1,
     name: "Sarah Johnson",
@@ -80,7 +83,29 @@ const employees = [
   },
 ];
 
+type Employee = typeof staticEmployees[number];
+
 export default function Employees() {
+  const [employees, setEmployees] = useState<Employee[]>(staticEmployees);
+  const [loading, setLoading] = useState(false);
+  const { auth } = useAuthHeaders();
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await apiFetch('/employees/', { auth });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (isMounted && Array.isArray(data.results)) setEmployees(data.results);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, [auth.accessToken]);
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -187,6 +212,7 @@ export default function Employees() {
           </Card>
         ))}
       </div>
+      {loading && <p className="text-sm text-muted-foreground">Loading employees...</p>}
     </div>
   );
 }
