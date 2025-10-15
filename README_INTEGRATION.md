@@ -7,7 +7,9 @@ Integration notes: Frontend + Backend
 ```bash
 cd backend
 # ensure virtualenv is activated and dependencies installed
-python manage.py runserver
+pip install django djangorestframework djangorestframework-simplejwt django-cors-headers python-decouple whitenoise psycopg2-binary
+python manage.py migrate
+python manage.py runserver 0.0.0.0:8000
 ```
 
 2. Start frontend dev server (from project root):
@@ -15,6 +17,7 @@ python manage.py runserver
 ```bash
 cd frontend
 npm install
+# optional: set VITE_API_BASE_URL in .env (e.g. http://localhost:8000/api)
 npm run dev
 ```
 
@@ -34,6 +37,7 @@ npm run build
 ```bash
 cd backend
 # ensure env vars set (SECRET_KEY, DB credentials)
+python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 python manage.py runserver 0.0.0.0:8000
 ```
@@ -44,3 +48,5 @@ Django is configured to serve the built frontend from `frontend/dist` via WhiteN
 
 - Move secrets out of `settings.py` and into environment variables.
 - Add `requirements.txt` for reproducible backend environment.
+- Backend env vars needed: `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`.
+- Frontend env var (optional): `VITE_API_BASE_URL` (defaults to `/api`).
