@@ -22,6 +22,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useAuthHeaders } from "@/hooks/useAuthHeaders";
 
 const attendanceRecords = [
   {
@@ -107,6 +110,34 @@ const leaveBalances = [
 ];
 
 export default function Attendance() {
+  const { auth } = useAuthHeaders();
+  const [records, setRecords] = useState<any[]>(attendanceRecords);
+  const [trend, setTrend] = useState<any[]>(monthlyTrend);
+  const [deptRates, setDeptRates] = useState<any[]>(departmentAttendance);
+  const [balances, setBalances] = useState<any[]>(leaveBalances);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await apiFetch('/attendance/summary/', { auth });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!isMounted) return;
+        setRecords(data.attendanceRecords || []);
+        setTrend(data.monthlyTrend || []);
+        setDeptRates(data.departmentAttendance || []);
+        setBalances(data.leaveBalances || []);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { isMounted = false; };
+  }, [auth.accessToken]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -206,7 +237,7 @@ export default function Attendance() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {attendanceRecords.map((record) => (
+              {records.map((record) => (
                 <TableRow key={record.id}>
                   <TableCell className="font-medium">{record.name}</TableCell>
                   <TableCell>{record.department}</TableCell>
@@ -230,10 +261,10 @@ export default function Attendance() {
                         record.status === "excellent"
                           ? "default"
                           : record.status === "good"
-                          ? "secondary"
-                          : record.status === "review"
-                          ? "outline"
-                          : "destructive"
+                            ? "secondary"
+                            : record.status === "review"
+                              ? "outline"
+                              : "destructive"
                       }
                     >
                       {record.status === "excellent" && "Excellent"}
@@ -258,7 +289,7 @@ export default function Attendance() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyTrend}>
+              <LineChart data={trend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -303,7 +334,7 @@ export default function Attendance() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={departmentAttendance}>
+              <BarChart data={deptRates}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="department" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -327,7 +358,7 @@ export default function Attendance() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={leaveBalances}>
+              <BarChart data={balances}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="department" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -346,6 +377,7 @@ export default function Attendance() {
           </CardContent>
         </Card>
       </div>
+      {loading && <p className="text-sm text-muted-foreground">Loading attendance...</p>}
 
       {/* AI Insights */}
       <Card className="shadow-elevated border-l-4 border-l-accent">

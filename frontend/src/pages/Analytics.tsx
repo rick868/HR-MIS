@@ -2,69 +2,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Brain, TrendingUp, Users, DollarSign, AlertCircle, Target } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ScatterChart,
-  Scatter,
-  ZAxis,
-} from "recharts";
-
-const turnoverPrediction = [
-  { month: "Jul", predicted: 3, actual: 2 },
-  { month: "Aug", predicted: 4, actual: 3 },
-  { month: "Sep", predicted: 2, actual: 2 },
-  { month: "Oct", predicted: 5, actual: null },
-  { month: "Nov", predicted: 3, actual: null },
-  { month: "Dec", predicted: 4, actual: null },
-];
-
-const payrollForecast = [
-  { month: "Jul", amount: 485000, forecast: 490000 },
-  { month: "Aug", amount: 492000, forecast: 495000 },
-  { month: "Sep", amount: 488000, forecast: 500000 },
-  { month: "Oct", amount: null, forecast: 510000 },
-  { month: "Nov", amount: null, forecast: 515000 },
-  { month: "Dec", amount: null, forecast: 525000 },
-];
-
-const performanceVsSalary = [
-  { name: "Eng-1", performance: 94, salary: 95000, size: 3 },
-  { name: "Sales-1", performance: 89, salary: 82000, size: 2.5 },
-  { name: "Mkt-1", performance: 72, salary: 78000, size: 1.8 },
-  { name: "Eng-2", performance: 91, salary: 88000, size: 2.8 },
-  { name: "Fin-1", performance: 86, salary: 85000, size: 2.4 },
-  { name: "HR-1", performance: 90, salary: 75000, size: 2.6 },
-  { name: "Sales-2", performance: 78, salary: 92000, size: 2 },
-];
-
-const trainingROI = [
-  { program: "Leadership", cost: 15000, improvement: 18, roi: 120 },
-  { program: "Technical", cost: 22000, improvement: 25, roi: 145 },
-  { program: "Communication", cost: 8000, improvement: 12, roi: 95 },
-  { program: "Analytics", cost: 18000, improvement: 22, roi: 135 },
-  { program: "Project Mgmt", cost: 12000, improvement: 15, roi: 110 },
-];
-
-const attritionRisk = [
-  { name: "Sarah Johnson", department: "Engineering", risk: 15, reason: "Low engagement" },
-  { name: "Emily Rodriguez", department: "Marketing", risk: 68, reason: "Performance drop + absences" },
-  { name: "David Kim", department: "Engineering", risk: 22, reason: "Market opportunities" },
-  { name: "Lisa Thompson", department: "Finance", risk: 54, reason: "Frequent absences" },
-  { name: "Michael Chen", department: "Sales", risk: 28, reason: "High overtime" },
-];
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, ZAxis } from "recharts";
+import { useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api";
+import { useAuthHeaders } from "@/hooks/useAuthHeaders";
 
 export default function Analytics() {
+  const { auth } = useAuthHeaders();
+  const [turnoverPrediction, setTurnoverPrediction] = useState<any[]>([]);
+  const [payrollForecast, setPayrollForecast] = useState<any[]>([]);
+  const [performanceVsSalary, setPerformanceVsSalary] = useState<any[]>([]);
+  const [trainingROI, setTrainingROI] = useState<any[]>([]);
+  const [attritionRisk, setAttritionRisk] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await apiFetch('/analytics/summary/', { auth });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (!isMounted) return;
+        setTurnoverPrediction(data.turnoverPrediction || []);
+        setPayrollForecast(data.payrollForecast || []);
+        setPerformanceVsSalary(data.performanceVsSalary || []);
+        setTrainingROI(data.trainingROI || []);
+        setAttritionRisk(data.attritionRisk || []);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [auth.accessToken]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -173,8 +148,8 @@ export default function Analytics() {
                       employee.risk > 60
                         ? "destructive"
                         : employee.risk > 40
-                        ? "outline"
-                        : "secondary"
+                          ? "outline"
+                          : "secondary"
                     }
                     className="w-20 justify-center"
                   >

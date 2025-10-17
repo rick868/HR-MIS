@@ -1,6 +1,6 @@
 from django.urls import path
-from . import views
+from .views import summary
 
 urlpatterns = [
-    # Performance management endpoints will be added here
+    path('summary/', summary, name='performance-summary'),
 ]
