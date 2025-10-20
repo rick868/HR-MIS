@@ -29,10 +29,13 @@ def summary(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def review(request):
-    """Compute simple performance analysis based on provided (or sample) data.
+    """Compute expanded performance analysis across multiple categories.
 
     Input (optional JSON body): {
-      employees: [{ name, department, score, attendance, taskQuality, teamwork }]
+      employees: [{ name, department, score, attendance, taskQuality, teamwork }],
+      weights?: { job_performance?: number, behavioral?: number, attendance?: number,
+                  learning?: number, leadership?: number, customer?: number,
+                  innovation?: number, cultural?: number }
     }
     """
     payload = request.data or {}
@@ -46,21 +49,47 @@ def review(request):
             {"name": "Lisa Thompson", "department": "Finance", "score": 86, "attendance": 94, "taskQuality": 84, "teamwork": 82},
         ]
 
-    # Weighted score components
-    weight_score = 0.5
-    weight_task_quality = 0.25
-    weight_teamwork = 0.15
-    weight_attendance = 0.10
+    # Category weights (sum to 1.0)
+    weights = payload.get('weights') or {}
+    category_weights = {
+        "job_performance": float(weights.get('job_performance', 0.4)),
+        "behavioral": float(weights.get('behavioral', 0.15)),
+        "attendance": float(weights.get('attendance', 0.1)),
+        "learning": float(weights.get('learning', 0.1)),
+        "leadership": float(weights.get('leadership', 0.1)),
+        "customer": float(weights.get('customer', 0.075)),
+        "innovation": float(weights.get('innovation', 0.05)),
+        "cultural": float(weights.get('cultural', 0.025)),
+    }
+    total_w = sum(category_weights.values()) or 1.0
+    for k in category_weights:
+        category_weights[k] = category_weights[k] / total_w
 
     analyzed = []
     dept_totals = {}
     for e in employees:
-        total = (
-            (e.get('score', 0) * weight_score)
-            + (e.get('taskQuality', 0) * weight_task_quality)
-            + (e.get('teamwork', 0) * weight_teamwork)
-            + (e.get('attendance', 0) * weight_attendance)
-        )
+        # Per-category scoring (0-100) using available inputs; placeholders default to 0
+        job_performance = round((e.get('score', 0) * 0.6) + (e.get('taskQuality', 0) * 0.4), 1)
+        behavioral = round((e.get('teamwork', 0) * 0.7) + (min(e.get('score', 0), 100) * 0.3), 1)
+        attendance = float(e.get('attendance', 0))
+        learning = 0.0  # integrate LMS: completed trainings, skill gains
+        leadership = 0.0  # for supervisors: team outcomes, decision quality
+        customer = 0.0  # CRM/CSAT inputs
+        innovation = 0.0  # ideas submitted/implemented
+        cultural = 0.0  # participation & sentiment alignment
+
+        per_category = {
+            "job_performance": job_performance,
+            "behavioral": behavioral,
+            "attendance": attendance,
+            "learning": learning,
+            "leadership": leadership,
+            "customer": customer,
+            "innovation": innovation,
+            "cultural": cultural,
+        }
+
+        total = sum(per_category[c] * category_weights[c] for c in category_weights)
 
         # Simple recommendation rules
         if total >= 90:
@@ -81,6 +110,7 @@ def review(request):
             "teamwork": e.get('teamwork'),
             "attendance": e.get('attendance'),
             "recommendation": recommendation,
+            "categories": per_category,
         })
 
         dept = e.get('department') or 'Unknown'
@@ -116,10 +146,129 @@ def review(request):
         },
     ]
 
+    category_definitions = {
+        "job_performance": {
+            "title": "Job Performance & Results",
+            "purpose": "Assess effectiveness in core responsibilities and goals.",
+            "metrics": [
+                "Task completion rate (PM tools)",
+                "KPI/OKR attainment",
+                "Work quality (reviews/audits)",
+                "Efficiency vs estimates",
+            ],
+            "features": [
+                "Auto-sync with task/OKR tools",
+                "Weighted scoring (~40%)",
+                "Trend dashboards",
+                "AI productivity insights",
+            ],
+        },
+        "behavioral": {
+            "title": "Behavioral & Soft Skills",
+            "purpose": "Evaluate interpersonal effectiveness and adaptability.",
+            "metrics": [
+                "360° communication feedback",
+                "Initiative logs",
+                "Teamwork/engagement",
+            ],
+            "features": [
+                "NLP sentiment on comments",
+                "Comparative dashboards",
+                "Balanced qual/quant scoring",
+            ],
+        },
+        "attendance": {
+            "title": "Attendance & Reliability",
+            "purpose": "Measure punctuality and dependability.",
+            "metrics": [
+                "Attendance rate",
+                "Late check-ins",
+                "Leave balances & trends",
+            ],
+            "features": [
+                "Real-time viz & alerts",
+                "Payroll linkage",
+                "Configurable thresholds",
+            ],
+        },
+        "learning": {
+            "title": "Learning & Growth",
+            "purpose": "Assess professional development and skill gains.",
+            "metrics": [
+                "Completed trainings (LMS)",
+                "Skill assessments",
+                "Application of new skills",
+            ],
+            "features": [
+                "AI course recommendations",
+                "External platform integration",
+                "ROI/growth dashboards",
+            ],
+        },
+        "leadership": {
+            "title": "Leadership & Management",
+            "purpose": "Evaluate managerial competence and team outcomes.",
+            "metrics": [
+                "Team performance average",
+                "Decision quality ratings",
+                "Conflict resolution & morale",
+            ],
+            "features": [
+                "Leadership analytics",
+                "Real-time gap alerts",
+                "Coaching recommendations",
+            ],
+        },
+        "customer": {
+            "title": "Customer/Stakeholder Satisfaction",
+            "purpose": "Integrate external perspectives into evaluation.",
+            "metrics": [
+                "CSAT/NPS ratings (CRM)",
+                "Response/resolution time",
+                "Relationship feedback",
+            ],
+            "features": [
+                "CRM integration",
+                "Role-weighted factor",
+                "Predictive correlation analysis",
+            ],
+        },
+        "innovation": {
+            "title": "Innovation & Continuous Improvement",
+            "purpose": "Encourage creative problem-solving.",
+            "metrics": [
+                "Ideas submitted",
+                "Approved/implemented",
+                "Efficiency gains",
+            ],
+            "features": [
+                "Innovation leaderboard",
+                "Idea tracking",
+                "Gamified rewards",
+            ],
+        },
+        "cultural": {
+            "title": "Cultural & Organizational Alignment",
+            "purpose": "Measure alignment with values and culture.",
+            "metrics": [
+                "Program participation",
+                "Value alignment sentiment",
+                "Recognition & awards",
+            ],
+            "features": [
+                "Culture index viz",
+                "Recognition reminders",
+                "Engagement-retention analytics",
+            ],
+        },
+    }
+
     return Response({
         "employees": analyzed,
         "deptAverages": dept_averages,
         "insights": insights,
+        "categoryWeights": category_weights,
+        "categoryDefinitions": category_definitions,
     })
 
 # Create your views here.
