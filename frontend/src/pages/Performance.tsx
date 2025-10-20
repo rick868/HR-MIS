@@ -30,6 +30,10 @@ export default function Performance() {
   const [skillGapData, setSkillGapData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [categoryWeights, setCategoryWeights] = useState<Record<string, number>>({});
+  const [categoryDefinitions, setCategoryDefinitions] = useState<Record<string, any>>({});
+  const [insights, setInsights] = useState<Array<{ title: string; items: string[] }>>([]);
+
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
@@ -50,6 +54,19 @@ export default function Performance() {
     return () => { isMounted = false; };
   }, [auth.accessToken]);
 
+  async function runReview() {
+    const resp = await apiFetch('/performance/review/', { method: 'POST', auth });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    setEmployees(data.employees || []);
+    setCategoryWeights(data.categoryWeights || {});
+    setCategoryDefinitions(data.categoryDefinitions || {});
+    setInsights(data.insights || []);
+    // derive categories for quick chart visualization
+    const pc = Object.entries(data.categoryWeights || {}).map(([category, weight]) => ({ category, weight: Math.round(weight * 100), score: Math.round((data.employees?.[0]?.categories?.[category] ?? 0)) }));
+    setPerformanceCategories(pc);
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -60,14 +77,7 @@ export default function Performance() {
             AI-driven performance scoring and recommendations
           </p>
         </div>
-        <Button onClick={async () => {
-          const resp = await apiFetch('/performance/review/', { method: 'POST', auth });
-          if (!resp.ok) return;
-          const data = await resp.json();
-          setEmployees(data.employees || []);
-          // derive categories from department averages for a quick chart update
-          setPerformanceCategories((data.deptAverages || []).map((d: any) => ({ category: d.department, weight: 30, score: d.average })));
-        }}>
+        <Button onClick={runReview}>
           <Award className="mr-2 h-4 w-4" />
           Run Performance Review
         </Button>
@@ -132,16 +142,15 @@ export default function Performance() {
               <TableRow>
                 <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
-                <TableHead>Overall Score</TableHead>
+                <TableHead>Overall</TableHead>
                 <TableHead>Attendance</TableHead>
                 <TableHead>Task Quality</TableHead>
-                <TableHead>Trend</TableHead>
-                <TableHead>AI Recommendation</TableHead>
+                <TableHead>Recommendation</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.map((employee) => (
-                <TableRow key={employee.id}>
+              {employees.map((employee, idx) => (
+                <TableRow key={idx}>
                   <TableCell className="font-medium">{employee.name}</TableCell>
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>
@@ -152,17 +161,6 @@ export default function Performance() {
                   </TableCell>
                   <TableCell>{employee.attendance}%</TableCell>
                   <TableCell>{employee.taskQuality}%</TableCell>
-                  <TableCell>
-                    {employee.trend === "up" && (
-                      <TrendingUp className="h-4 w-4 text-success" />
-                    )}
-                    {employee.trend === "down" && (
-                      <TrendingDown className="h-4 w-4 text-destructive" />
-                    )}
-                    {employee.trend === "stable" && (
-                      <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -187,10 +185,10 @@ export default function Performance() {
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Performance Scoring Breakdown */}
+        {/* Category Weights vs Scores */}
         <Card className="shadow-card">
           <CardHeader>
-            <CardTitle>Performance Scoring Weights</CardTitle>
+            <CardTitle>Category Weights & Scores</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -198,22 +196,16 @@ export default function Performance() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
                 <YAxis dataKey="category" type="category" stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
-                  }}
-                />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }} />
                 <Legend />
                 <Bar dataKey="weight" fill="hsl(var(--primary))" name="Weight %" />
-                <Bar dataKey="score" fill="hsl(var(--accent))" name="Avg Score" />
+                <Bar dataKey="score" fill="hsl(var(--accent))" name="Score" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Skill Gap Analysis */}
+        {/* Skill Gap Analysis (placeholder retained) */}
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle>Skill Gap Analysis</CardTitle>
@@ -224,33 +216,36 @@ export default function Performance() {
                 <PolarGrid stroke="hsl(var(--border))" />
                 <PolarAngleAxis dataKey="skill" stroke="hsl(var(--muted-foreground))" />
                 <PolarRadiusAxis stroke="hsl(var(--muted-foreground))" />
-                <Radar
-                  name="Current Level"
-                  dataKey="current"
-                  stroke="hsl(var(--primary))"
-                  fill="hsl(var(--primary))"
-                  fillOpacity={0.6}
-                />
-                <Radar
-                  name="Required Level"
-                  dataKey="required"
-                  stroke="hsl(var(--accent))"
-                  fill="hsl(var(--accent))"
-                  fillOpacity={0.6}
-                />
+                <Radar name="Current Level" dataKey="current" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
+                <Radar name="Required Level" dataKey="required" stroke="hsl(var(--accent))" fill="hsl(var(--accent))" fillOpacity={0.6} />
                 <Legend />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "var(--radius)",
-                  }}
-                />
+                <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "var(--radius)" }} />
               </RadarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
+
+      {/* Insights */}
+      {insights.length > 0 && (
+        <Card className="shadow-elevated border-l-4 border-l-accent">
+          <CardHeader>
+            <CardTitle>AI-Driven Insights</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {insights.map((block, i) => (
+              <div key={i} className="rounded-lg border p-4 bg-gradient-card">
+                <p className="font-medium text-sm">{block.title}</p>
+                <ul className="mt-2 list-disc pl-5 text-sm text-muted-foreground">
+                  {block.items.map((it, j) => (
+                    <li key={j}>{it}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
