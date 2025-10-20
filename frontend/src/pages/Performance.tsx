@@ -63,7 +63,11 @@ export default function Performance() {
     setCategoryDefinitions(data.categoryDefinitions || {});
     setInsights(data.insights || []);
     // derive categories for quick chart visualization
-    const pc = Object.entries(data.categoryWeights || {}).map(([category, weight]) => ({ category, weight: Math.round(weight * 100), score: Math.round((data.employees?.[0]?.categories?.[category] ?? 0)) }));
+    const pc = Object.entries(data.categoryWeights || {}).map(([category, weight]) => {
+      const w = Number(weight) || 0;
+      const s = Number(data.employees?.[0]?.categories?.[category] ?? 0) || 0;
+      return { category, weight: Math.round(w * 100), score: Math.round(s) };
+    });
     setPerformanceCategories(pc);
   }
 
