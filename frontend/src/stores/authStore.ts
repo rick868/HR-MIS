@@ -48,11 +48,11 @@ export const useAuthStore = create<AuthState>()(
 
           const data = await response.json();
           const accessToken = data.access as string;
-          const refreshToken = data.refresh as string;
+          const refreshToken = (data.refresh as string) ?? null;
 
           // get current user
           const meResp = await apiFetch(`/users/me/`, {
-            auth: { accessToken, refreshToken, onRefresh: (newAccess) => set({ accessToken: newAccess }) },
+            auth: { accessToken, refreshToken, onRefresh: (newAccess, newRefresh) => set({ accessToken: newAccess, refreshToken: newRefresh ?? refreshToken }) },
           });
           if (!meResp.ok) {
             set({ isLoading: false });

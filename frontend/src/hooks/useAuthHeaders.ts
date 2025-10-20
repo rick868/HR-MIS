@@ -1,14 +1,13 @@
 import { useAuthStore } from '@/stores/authStore';
 
 export function useAuthHeaders() {
-    const { accessToken, refreshToken, setLoading } = useAuthStore();
+    const { accessToken, refreshToken } = useAuthStore();
     return {
         auth: {
             accessToken,
             refreshToken,
-            onRefresh: (newAccess: string) => useAuthStore.setState({ accessToken: newAccess }),
+            onRefresh: (newAccess: string, newRefresh?: string) => useAuthStore.setState((s) => ({ accessToken: newAccess, refreshToken: newRefresh ?? s.refreshToken })),
         },
-        setLoading,
     };
 }
 
