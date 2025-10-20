@@ -97,6 +97,9 @@ export default function Employees() {
   const { auth } = useAuthHeaders();
   const [openAdd, setOpenAdd] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [openProfile, setOpenProfile] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [selected, setSelected] = useState<any | null>(null);
 
   const addEmployeeSchema = z.object({
     name: z.string().min(2, "Name is required"),
@@ -231,7 +234,19 @@ export default function Employees() {
               </div>
 
               {/* Actions */}
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" onClick={async () => {
+                setProfileLoading(true);
+                try {
+                  const resp = await apiFetch(`/employees/${employee.id}/`, { auth });
+                  if (resp.ok) {
+                    const data = await resp.json();
+                    setSelected(data);
+                    setOpenProfile(true);
+                  }
+                } finally {
+                  setProfileLoading(false);
+                }
+              }}>
                 View Profile
               </Button>
             </CardContent>
@@ -239,6 +254,60 @@ export default function Employees() {
         ))}
       </div>
       {loading && <p className="text-sm text-muted-foreground">Loading employees...</p>}
+      {profileLoading && <p className="text-sm text-muted-foreground">Loading profile...</p>}
+
+      <Dialog open={openProfile} onOpenChange={setOpenProfile}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Employee Profile</DialogTitle>
+          </DialogHeader>
+          {selected ? (
+            <div className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Name</p>
+                  <p className="text-sm font-medium">{selected.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Email</p>
+                  <p className="text-sm font-medium">{selected.email}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Phone</p>
+                  <p className="text-sm font-medium">{selected.phone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Department</p>
+                  <p className="text-sm font-medium">{selected.department || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Role</p>
+                  <p className="text-sm font-medium">{selected.role || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <Badge variant="outline">{selected.status}</Badge>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Performance Score</p>
+                  <p className="text-sm font-medium">{selected.performance_score ?? selected.performanceScore ?? 0}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Attendance Rate</p>
+                  <p className="text-sm font-medium">{selected.attendance_rate ?? selected.attendanceRate ?? 0}%</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No data</p>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenProfile(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={openAdd} onOpenChange={(v) => { setOpenAdd(v); if (!v) reset(); }}>
         <DialogContent>
