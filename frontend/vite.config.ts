@@ -31,4 +31,22 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1024,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          recharts: ["recharts"],
+          ui: [
+            "@/components/ui/button",
+            "@/components/ui/card",
+            "@/components/ui/table",
+            "@/components/ui/dialog",
+            "@/components/ui/select",
+          ],
+        },
+      },
+    },
+  },
 }));
