@@ -60,7 +60,14 @@ export default function Performance() {
             AI-driven performance scoring and recommendations
           </p>
         </div>
-        <Button>
+        <Button onClick={async () => {
+          const resp = await apiFetch('/performance/review/', { method: 'POST', auth });
+          if (!resp.ok) return;
+          const data = await resp.json();
+          setEmployees(data.employees || []);
+          // derive categories from department averages for a quick chart update
+          setPerformanceCategories((data.deptAverages || []).map((d: any) => ({ category: d.department, weight: 30, score: d.average })));
+        }}>
           <Award className="mr-2 h-4 w-4" />
           Run Performance Review
         </Button>
@@ -139,8 +146,8 @@ export default function Performance() {
                   <TableCell>{employee.department}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Progress value={employee.score} className="w-20" />
-                      <span className="text-sm font-medium">{employee.score}</span>
+                      <Progress value={employee.composite ?? employee.score} className="w-20" />
+                      <span className="text-sm font-medium">{employee.composite ?? employee.score}</span>
                     </div>
                   </TableCell>
                   <TableCell>{employee.attendance}%</TableCell>
@@ -159,16 +166,16 @@ export default function Performance() {
                   <TableCell>
                     <Badge
                       variant={
-                        employee.recommendation === "Promotion"
+                        (employee.recommendation ?? 'None') === "Promotion"
                           ? "default"
-                          : employee.recommendation === "Bonus"
+                          : (employee.recommendation ?? 'None') === "Bonus"
                             ? "secondary"
-                            : employee.recommendation === "Training"
+                            : (employee.recommendation ?? 'None') === "Training"
                               ? "outline"
                               : "secondary"
                       }
                     >
-                      {employee.recommendation}
+                      {employee.recommendation ?? 'None'}
                     </Badge>
                   </TableCell>
                 </TableRow>
