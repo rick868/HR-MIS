@@ -2,6 +2,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Search, UserPlus, Filter, Mail, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -89,6 +95,26 @@ export default function Employees() {
   const [employees, setEmployees] = useState<Employee[]>(staticEmployees);
   const [loading, setLoading] = useState(false);
   const { auth } = useAuthHeaders();
+  const [openAdd, setOpenAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const addEmployeeSchema = z.object({
+    name: z.string().min(2, "Name is required"),
+    email: z.string().email("Valid email required"),
+    phone: z.string().optional().or(z.literal("")),
+    department: z.string().min(1, "Department is required"),
+    role: z.string().min(1, "Role is required"),
+    status: z.enum(["Active", "Inactive", "On Leave"], { required_error: "Status is required" }),
+  });
+
+  type AddEmployeeForm = z.infer<typeof addEmployeeSchema>;
+
+  const { register, handleSubmit, reset, formState: { errors, isValid }, setValue, watch } = useForm<AddEmployeeForm>({
+    resolver: zodResolver(addEmployeeSchema),
+    mode: 'onChange',
+    defaultValues: { name: '', email: '', phone: '', department: '', role: '', status: 'Active' },
+  });
+  const statusValue = watch('status');
 
   useEffect(() => {
     let isMounted = true;
@@ -116,7 +142,7 @@ export default function Employees() {
             Manage and view employee information and profiles
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setOpenAdd(true)}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add Employee
         </Button>
@@ -213,6 +239,76 @@ export default function Employees() {
         ))}
       </div>
       {loading && <p className="text-sm text-muted-foreground">Loading employees...</p>}
+
+      <Dialog open={openAdd} onOpenChange={(v) => { setOpenAdd(v); if (!v) reset(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Employee</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={handleSubmit(async (values) => {
+            setSaving(true);
+            try {
+              const initials = values.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+              const payload = { ...values, initials };
+              const resp = await apiFetch('/employees/', { method: 'POST', body: JSON.stringify(payload), auth });
+              if (resp.ok) {
+                const created = await resp.json();
+                setEmployees((prev) => [created, ...prev]);
+                setOpenAdd(false);
+                reset();
+              }
+            } finally {
+              setSaving(false);
+            }
+          })}>
+            <div className="space-y-2">
+              <Label htmlFor="emp-name">Full Name</Label>
+              <Input id="emp-name" placeholder="Jane Doe" {...register('name')} />
+              {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emp-email">Email</Label>
+              <Input id="emp-email" type="email" placeholder="jane@company.com" {...register('email')} />
+              {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="emp-phone">Phone</Label>
+                <Input id="emp-phone" placeholder="+1 234 567 890" {...register('phone')} />
+                {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emp-dept">Department</Label>
+                <Input id="emp-dept" placeholder="Engineering" {...register('department')} />
+                {errors.department && <p className="text-xs text-destructive">{errors.department.message}</p>}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="emp-role">Role</Label>
+              <Input id="emp-role" placeholder="Software Engineer" {...register('role')} />
+              {errors.role && <p className="text-xs text-destructive">{errors.role.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={statusValue} onValueChange={(v) => setValue('status', v as AddEmployeeForm['status'], { shouldValidate: true })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setOpenAdd(false); reset(); }} disabled={saving}>Cancel</Button>
+              <Button type="submit" disabled={saving || !isValid}>Save</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
