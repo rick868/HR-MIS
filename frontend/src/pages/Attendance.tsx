@@ -148,7 +148,32 @@ export default function Attendance() {
             Track attendance patterns and manage workforce availability
           </p>
         </div>
-        <Button>
+        <Button onClick={() => {
+          // Generate attendance report
+          const reportData = {
+            overallAttendance: '80.2%',
+            activeLeaves: 12,
+            patternAlerts: 5,
+            pendingRequests: 8,
+            generatedAt: new Date().toISOString(),
+            records: records,
+            trend: trend,
+            departmentRates: deptRates,
+            leaveBalances: balances
+          };
+
+          // Create and download JSON report
+          const dataStr = JSON.stringify(reportData, null, 2);
+          const dataBlob = new Blob([dataStr], { type: 'application/json' });
+          const url = URL.createObjectURL(dataBlob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `attendance-report-${new Date().toISOString().split('T')[0]}.json`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }}>
           <Calendar className="mr-2 h-4 w-4" />
           Generate Report
         </Button>

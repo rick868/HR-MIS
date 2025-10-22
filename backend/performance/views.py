@@ -146,6 +146,39 @@ def review(request):
         },
     ]
 
+    # Calibration bands and risk flags
+    calibration_bands = {"Outstanding": 0, "Strong": 0, "Solid": 0, "Concern": 0}
+    risk_employees = []
+    for e in analyzed:
+        c = e["composite"]
+        if c >= 90:
+            calibration_bands["Outstanding"] += 1
+        elif c >= 80:
+            calibration_bands["Strong"] += 1
+        elif c >= 70:
+            calibration_bands["Solid"] += 1
+        else:
+            calibration_bands["Concern"] += 1
+
+        # simple risk: low attendance or low behavioral category
+        behavioral_score = e.get("categories", {}).get("behavioral", 0)
+        if (e.get("attendance", 100) < 85) or (behavioral_score < 70):
+            risk_employees.append({"name": e["name"], "department": e["department"], "composite": e["composite"]})
+
+    # Simple correlation between attendance and composite (Pearson)
+    def pearson(xs, ys):
+        n = len(xs)
+        if n == 0:
+            return 0.0
+        mean_x = sum(xs) / n
+        mean_y = sum(ys) / n
+        num = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
+        den_x = (sum((x - mean_x) ** 2 for x in xs) or 1.0) ** 0.5
+        den_y = (sum((y - mean_y) ** 2 for y in ys) or 1.0) ** 0.5
+        return round(num / (den_x * den_y), 3)
+
+    corr_attendance_composite = pearson([e.get("attendance", 0) for e in analyzed], [e["composite"] for e in analyzed])
+
     category_definitions = {
         "job_performance": {
             "title": "Job Performance & Results",
@@ -269,6 +302,9 @@ def review(request):
         "insights": insights,
         "categoryWeights": category_weights,
         "categoryDefinitions": category_definitions,
+        "calibrationBands": calibration_bands,
+        "riskEmployees": risk_employees,
+        "correlations": {"attendance_vs_overall": corr_attendance_composite},
     })
 
 # Create your views here.

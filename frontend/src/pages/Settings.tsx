@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 
 export default function Settings() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const { auth } = useAuthHeaders();
   const [theme, setTheme] = useState('light');
 
@@ -162,14 +162,122 @@ export default function Settings() {
     if (!resp.ok) return;
   };
 
-  const handleExportData = () => {
-    // TODO: Implement data export
-    console.log('Exporting data...');
+  const handleExportData = async () => {
+    try {
+      // Export user data
+      const exportData = {
+        profile: profileData,
+        notifications,
+        security,
+        preferences: { ...preferences, theme },
+        dataSettings,
+        exportedAt: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `hr-intelligence-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      alert('Data exported successfully!');
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Error exporting data. Please try again.');
+    }
   };
 
   const handleImportData = () => {
-    // TODO: Implement data import
-    console.log('Importing data...');
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        // Validate and import data
+        if (data.profile) setProfileData(data.profile);
+        if (data.notifications) setNotifications(data.notifications);
+        if (data.security) setSecurity(data.security);
+        if (data.preferences) {
+          setPreferences(data.preferences);
+          if (data.preferences.theme) setTheme(data.preferences.theme);
+        }
+        if (data.dataSettings) setDataSettings(data.dataSettings);
+
+        alert('Data imported successfully! Please save your changes.');
+      } catch (error) {
+        console.error('Import error:', error);
+        alert('Error importing data. Please check the file format.');
+      }
+    };
+    input.click();
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    if (!confirm('This will permanently delete your account and all associated data. Are you absolutely sure?')) {
+      return;
+    }
+
+    try {
+      const resp = await apiFetch('/users/delete-account/', {
+        method: 'DELETE',
+        auth,
+      });
+
+      if (resp.ok) {
+        alert('Account deleted successfully. You will be redirected to the login page.');
+        logout();
+        window.location.href = '/signin';
+      } else {
+        alert('Error deleting account. Please contact support.');
+      }
+    } catch (error) {
+      console.error('Delete account error:', error);
+      alert('Error deleting account. Please try again.');
+    }
+  };
+
+  const handleClearAllData = async () => {
+    if (!confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+      return;
+    }
+
+    if (!confirm('This will permanently delete all your HR data. Are you absolutely sure?')) {
+      return;
+    }
+
+    try {
+      const resp = await apiFetch('/users/clear-data/', {
+        method: 'DELETE',
+        auth,
+      });
+
+      if (resp.ok) {
+        alert('All data cleared successfully.');
+        // Refresh the page to show empty state
+        window.location.reload();
+      } else {
+        alert('Error clearing data. Please contact support.');
+      }
+    } catch (error) {
+      console.error('Clear data error:', error);
+      alert('Error clearing data. Please try again.');
+    }
   };
 
   return (
@@ -655,10 +763,10 @@ export default function Settings() {
                     These actions cannot be undone. Please proceed with caution.
                   </p>
                   <div className="flex gap-2 mt-3">
-                    <Button variant="destructive" size="sm">
+                    <Button variant="destructive" size="sm" onClick={handleDeleteAccount}>
                       Delete Account
                     </Button>
-                    <Button variant="destructive" size="sm">
+                    <Button variant="destructive" size="sm" onClick={handleClearAllData}>
                       Clear All Data
                     </Button>
                   </div>
