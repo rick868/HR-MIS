@@ -1,6 +1,8 @@
-from django.urls import path
-from .views import summary
+from rest_framework.routers import DefaultRouter
+from .views import DashboardMetricViewSet, ReportViewSet
 
-urlpatterns = [
-    path('summary/', summary, name='analytics-summary'),
-]
+router = DefaultRouter()
+router.register(r'dashboard-metrics', DashboardMetricViewSet)
+router.register(r'reports', ReportViewSet)
+
+urlpatterns = router.urls

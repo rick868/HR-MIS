@@ -1,6 +1,9 @@
-from django.urls import path
-from .views import summary
+from rest_framework.routers import DefaultRouter
+from .views import AttendanceRecordViewSet, LeaveRequestViewSet, WorkScheduleViewSet
 
-urlpatterns = [
-    path('summary/', summary, name='attendance-summary'),
-]
+router = DefaultRouter()
+router.register(r'attendance-records', AttendanceRecordViewSet)
+router.register(r'leave-requests', LeaveRequestViewSet)
+router.register(r'work-schedules', WorkScheduleViewSet)
+
+urlpatterns = router.urls

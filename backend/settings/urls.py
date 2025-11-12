@@ -1,6 +1,8 @@
-from django.urls import path
-from . import views
+from rest_framework.routers import DefaultRouter
+from .views import SystemSettingsViewSet, NotificationSettingsViewSet
 
-urlpatterns = [
-    # Settings endpoints will be added here
-]
+router = DefaultRouter()
+router.register(r'system-settings', SystemSettingsViewSet)
+router.register(r'notification-settings', NotificationSettingsViewSet)
+
+urlpatterns = router.urls
